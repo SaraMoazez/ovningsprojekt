@@ -45,7 +45,7 @@ Do not assume a command succeeded. Check its output.
 - Reuse existing components, functions, and utilities before creating new ones.
 - Prefer simple solutions over unnecessary complexity.
 - Avoid duplicating code.
-- Always read @docs/standard.md before creating or modifying components, API endpoints, database logic, or tests.
+- Before creating or modifying components, API endpoints, database logic, or tests, read and follow the relevant rules in `docs/standard.md`.
 
 ## 5. Workflow & Verification
 - Keep changes focused and do not modify unrelated code.
