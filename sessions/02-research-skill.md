@@ -76,7 +76,19 @@ A later measurement was taken after answering the four open design questions and
 
 ## 3. What failed
 
-No explicit failures were observed during the initial skill test.
+No execution failures occurred during `/research`. However, a documentation inconsistency was discovered during the subsequent `/plan` workflow.
+
+- AC5 (per-customer idempotency key scoping) was listed both as a confirmed acceptance criterion and as an unverified assumption.
+- The inconsistency was not detected during the initial research review.
+- The `/plan` skill exposed the issue when checking the relationship between research findings and implementation requirements.
+
+**Corrections made:**
+- Updated the research document to consistently identify AC1-AC8 as confirmed acceptance criteria.
+- Removed the contradictory AC5 assumption.
+- Updated the implementation plan to reflect the confirmed requirement and improve acceptance-criteria traceability.
+- Corrected the existing test count in the plan.
+
+**Improvement identified:** The research skill should explicitly verify that confirmed acceptance criteria and unverified assumptions do not contradict each other.
 
 ## 4. What remains
 
