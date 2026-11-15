@@ -30,9 +30,10 @@ safe: a retry of the same order attempt must not create a second order.
 | Key retention | Keys are kept indefinitely, stored with their orders. No expiry. |
 | Replay state | A replay returns the *current* state of the original order via the existing `getOrder`. No snapshot of the original response is stored. |
 
-### Expected behaviour (draft acceptance criteria, Given/When/Then)
+### Expected behaviour (acceptance criteria, Given/When/Then)
 
-`docs/user-stories.md:3` asks for acceptance criteria in Given/When/Then form. Draft:
+`docs/user-stories.md:3` asks for acceptance criteria in Given/When/Then form. All eight criteria
+below have been reviewed and confirmed by the user (recorded 2026-11-15):
 
 1. **Given** a logged-in customer, **when** they send `POST /orders` with a valid body and a new
    `Idempotency-Key`, **then** an order is created and `201` is returned with the order.
@@ -258,6 +259,7 @@ Follow TDD (CLAUDE.md §6). Implementation will start only after a plan is appro
    strings are rejected. UUIDs are not required.
 3. **Key retention:** keys are kept indefinitely with their orders. No expiry.
 4. **Replay state:** the current state of the original order, via `getOrder`. No snapshot.
+5. **Acceptance criteria:** AC1–AC8 are confirmed, including per-customer key scoping (AC5).
 
 **Remaining details for the planning phase** (no user decision required unless the plan
 proposes something unusual)
@@ -269,7 +271,6 @@ proposes something unusual)
 - The fingerprint covers `lines` (in order) and `discountCode`. Reordering lines counts as a
   *different* body.
 - Validation failures (400) are not stored, so the same key can be retried after a fix.
-- Keys are scoped per customer. The same key from two customers is not a conflict.
 - Keys are stored and compared exactly as sent, without trimming. `" abc"` and `"abc"` are
   different keys. Trimming is used only to detect whitespace-only keys. The 255-character limit
   applies to the raw value.
