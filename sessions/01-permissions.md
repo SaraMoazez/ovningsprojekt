@@ -4,15 +4,13 @@
 **Phase:** AI Rig Setup – Permissions  
 **Status:** Implemented and verified
 
-## 1. Objective
+## 1. Current state
 
-Configure project level permissions for Claude Code using allow, ask and deny rules.
+Project-level permissions for Claude Code have been configured in .claude/settings.json.
 
-The objective is to follow the principle of least privilege: Claude should only execute approved commands automatically, request approval for potentially risky operations and block explicitly prohibited operations.
+The configuration follows the principle of least privilege. Claude is allowed to execute selected development and inspection commands automatically, must request approval for potentially risky operations, and is explicitly blocked from prohibited operations.
 
-## 2. Implementation
-
-Created `.claude/settings.json` with project-level permissions.
+The permission configuration contains three rule categories:
 
 ### Allow
 
@@ -47,7 +45,7 @@ The following operations are explicitly blocked:
 - `curl` commands
 - `git push`
 
-## 3. Verification
+## 2. What worked
 
 The project settings were successfully loaded in Claude Code.
 
@@ -85,15 +83,21 @@ Verification was performed using:
 
 All six behavioral tests produced the expected results.
 
-## 4. Security considerations
+## 3. What failed
 
-- Project level permissions are stored in `.claude/settings.json`.
-- Explicit deny rules take precedence over ask and allow rules.
-- The configuration follows the principle of least privilege.
-- Permission rules are not a complete security boundary against all alternative execution methods.
-- Additional protection through hooks and sandbox configuration will be considered in later implementation stages.
+No unexpected failures occurred during the permission verification.
 
-## 5. Decisions
+The configured allow, ask and deny rules behaved as expected in all six tests.
+
+## 4. What remains
+
+- Integrate permissions with the planned hooks and subagents.
+- Review whether additional permissions are needed for specific workflows.
+- Revisit the security model as the AI rig becomes more advanced.
+- Implement reusable Claude Code skills and slash commands.
+- Continue building the AI rig incrementally and document each implementation session.
+
+## 5. Decisions made
 
 - Use a restrictive permission model.
 - Allow selected development and inspection commands without approval.
@@ -101,14 +105,3 @@ All six behavioral tests produced the expected results.
 - Block potentially dangerous commands and git push.
 - Keep project permissions version controlled.
 - Verify permission behavior through practical tests rather than relying only on configuration inspection.
-
-## 6. Remaining work
-
-- Integrate permissions with the planned hooks and subagents.
-- Review whether additional permissions are needed for specific workflows.
-- Revisit the security model as the AI rig becomes more advanced.
-
-## 7. Next steps
-
-- Implement reusable Claude Code skills and slash commands.
-- Continue building the AI rig incrementally and document each implementation session.
