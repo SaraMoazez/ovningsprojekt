@@ -39,4 +39,5 @@ Rules:
 - Include file paths and line references where possible.
 - Clearly distinguish verified facts from assumptions.
 - Do not execute tests or other commands that modify project state.
+- Ensure that no statements, requirements, findings, assumptions or recommendations contradict each other.
 - Wait for further instructions before proceeding with implementation.
