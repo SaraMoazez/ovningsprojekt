@@ -57,6 +57,7 @@ Rules:
 - Never delete, disable, skip, weaken, or bypass existing tests.
 - Never modify existing tests merely to make them pass.
 - Never change test configuration to bypass failures.
+- Always activate the project's `.venv` before running Python-related commands. Never rely on the system Python installation.
 - Do not modify unrelated code to resolve pre-existing warnings or failures.
 - Do not implement additional functionality outside the specified plan step.
 - Never claim a test passed unless it was actually executed successfully.
