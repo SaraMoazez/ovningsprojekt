@@ -1,4 +1,3 @@
-
 ---
 name: research
 description: Investigate a feature, bug, or refactoring task before implementation. Analyze relevant code, architecture, dependencies, and tests. Invoke with /research <task>.
