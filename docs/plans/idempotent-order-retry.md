@@ -1,7 +1,7 @@
 # Plan: Idempotent Order Retry (No Duplicate Orders)
 
 Date: 2026-11-15
-Status: **Draft – awaiting approval.** Nothing in this plan has been implemented.
+Status: **Approved.** Nothing in this plan has been implemented.
 
 ## Task Overview
 
