@@ -1,7 +1,7 @@
 # ADR 0001: SQL migrations with an in-house runner
 
 Date: 2026-11-16
-Status: Proposed (pending user review)
+Status: Accepted (2026-11-16)
 
 Related: `docs/plans/idempotent-order-retry.md` (step 0), `docs/research/idempotent-order-retry.md`.
 
