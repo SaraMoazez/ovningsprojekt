@@ -26,7 +26,7 @@ a secure, test-driven and traceable development process.
 
 Use the existing project scripts:
 
-- `npm test` - Run TypeScript tests.
+- `npm test` - Run TypeScript tests. Requires `.venv` to be activated, because the price tests run the legacy Python module.
 - `npm run test:legacy` - Run Python tests.
 - `npm run lint` - Run ESLint.
 - `npm run typecheck` - Run TypeScript type checking.
