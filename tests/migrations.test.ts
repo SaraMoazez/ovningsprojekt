@@ -2,14 +2,13 @@ import path from "node:path";
 import { PoolClient } from "pg";
 import { db } from "../src/db";
 import { migrateDown, migrateUp } from "../src/migrate";
-import { closeDb } from "./helpers/db";
+import { closeDb, resetDb } from "./helpers/db";
 
 const fixtures = path.join(__dirname, "fixtures", "migrations");
 const validDir = path.join(fixtures, "valid");
 
 // schema.sql does not drop these tables, so the runner tests clean up after themselves.
 const cleanupSql = `
-  SET client_min_messages TO warning;
   DROP TABLE IF EXISTS migration_fixture_b, migration_fixture_a, migration_fixture_broken,
     migration_fixture_record_conflict, migration_fixture_down_conflict, schema_migrations;
 `;
@@ -102,5 +101,13 @@ describe("migration runner", () => {
 
     expect(await tableExists("migration_fixture_down_conflict")).toBe(true);
     expect(await appliedVersions()).toEqual(["9001"]);
+  });
+});
+
+describe("resetDb", () => {
+  it("applies migrations, so schema_migrations exists afterwards", async () => {
+    await resetDb();
+
+    expect(await tableExists("schema_migrations")).toBe(true);
   });
 });

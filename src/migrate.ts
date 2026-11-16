@@ -2,6 +2,9 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { ClientBase } from "pg";
 
+const dbDir = path.join(__dirname, "..", "db");
+export const migrationsDir = path.join(dbDir, "migrations");
+
 interface Migration {
   version: string;
   upFile: string;
@@ -60,6 +63,15 @@ export async function migrateDown(client: ClientBase, dir: string): Promise<void
     await client.query(readFileSync(latest.downFile, "utf8"));
     await client.query("DELETE FROM schema_migrations WHERE version = $1", [latest.version]);
   });
+}
+
+// Rebuilds a database: baseline schema, then all migrations, then seed data.
+// Migrations run before the seed so that seed data is inserted into the final schema.
+export async function resetDatabase(client: ClientBase): Promise<void> {
+  await client.query(readFileSync(path.join(dbDir, "schema.sql"), "utf8"));
+  await client.query("DROP TABLE IF EXISTS schema_migrations");
+  await migrateUp(client, migrationsDir);
+  await client.query(readFileSync(path.join(dbDir, "seed.sql"), "utf8"));
 }
 
 async function withTransaction(client: ClientBase, work: () => Promise<void>): Promise<void> {

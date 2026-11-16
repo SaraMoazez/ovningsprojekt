@@ -1,12 +1,6 @@
-// Återställer utvecklingsdatabasen och testdatabasen till schema och testdata.
-import { readFileSync } from "node:fs";
-import path from "node:path";
+// Återställer utvecklingsdatabasen och testdatabasen till schema, migreringar och testdata.
 import { Client } from "pg";
-
-const root = path.join(__dirname, "..");
-const sql = ["schema.sql", "seed.sql"]
-  .map((f) => readFileSync(path.join(root, "db", f), "utf8"))
-  .join("\n");
+import { resetDatabase } from "../src/migrate";
 
 const urls = [
   process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/butik",
@@ -17,9 +11,11 @@ async function main(): Promise<void> {
   for (const url of urls) {
     const client = new Client({ connectionString: url });
     await client.connect();
-    await client.query("SET client_min_messages TO warning");
-    await client.query(sql);
-    await client.end();
+    try {
+      await resetDatabase(client);
+    } finally {
+      await client.end();
+    }
     console.log(`Återställd: ${url.split("/").pop()}`);
   }
 }
