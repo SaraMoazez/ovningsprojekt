@@ -1,4 +1,3 @@
-
 ---
 name: plan
 description: Create a structured implementation plan for a feature, bug fix, or refactoring task. Use research findings to define implementation steps, affected files, and testing strategy. Invoke with /plan <task>.
@@ -35,7 +34,13 @@ Work in the following order and do not skip any steps:
    - Testing Strategy
    - Risks and Considerations
    - Open Questions and Assumptions
-10. Present the completed plan and explain how the implementation steps can be executed using `/tdd`. Wait for the user's approval before implementation.
+   - Include a status field directly below the document title and date: `Status: **Draft – awaiting approval.**`
+10. Present the completed plan and explain how the implementation steps can be executed using `/tdd`.
+  - Clearly state that the plan requires user approval before implementation.
+  - Keep the status as `Status: **Draft – awaiting approval.**` until the user explicitly approves the plan.
+  - Once the user explicitly approves the plan, update the status to `Status: **Approved.**`
+  - Do not change the plan's content when updating its status unless requested.
+  - If the plan's content is materially changed after approval, reset its status to `Status: **Draft – awaiting approval.**` and request user approval again.
 
 Rules:
 - Do not implement the requested functionality.
@@ -49,4 +54,5 @@ Rules:
 - Clearly distinguish verified facts from assumptions.
 - Ask the user for clarification when important requirements or technical decisions are unclear.
 - Never invent files, dependencies, test results, or technical requirements.
+- Never mark an implementation plan as approved without explicit user approval.
 - Do not commit or push changes.
