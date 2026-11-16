@@ -1,7 +1,7 @@
 import path from "node:path";
 import { PoolClient } from "pg";
 import { db } from "../src/db";
-import { migrateDown, migrateUp } from "../src/migrate";
+import { migrateDown, migrateUp, migrationsDir } from "../src/migrate";
 import { closeDb, resetDb } from "./helpers/db";
 
 const fixtures = path.join(__dirname, "fixtures", "migrations");
@@ -109,5 +109,85 @@ describe("resetDb", () => {
     await resetDb();
 
     expect(await tableExists("schema_migrations")).toBe(true);
+  });
+});
+
+describe("migration 0001: order idempotency", () => {
+  const constraintName = "orders_customer_idempotency_key_unique";
+
+  interface OrderColumn {
+    column_name: string;
+    data_type: string;
+    character_maximum_length: number | null;
+    is_nullable: string;
+  }
+
+  async function idempotencyColumns(): Promise<OrderColumn[]> {
+    const res = await client.query<OrderColumn>(
+      `SELECT column_name, data_type, character_maximum_length, is_nullable
+         FROM information_schema.columns
+        WHERE table_name = 'orders' AND column_name = ANY($1)
+        ORDER BY column_name`,
+      [["idempotency_key", "request_hash"]],
+    );
+    return res.rows;
+  }
+
+  beforeEach(resetDb);
+
+  it("adds nullable idempotency_key and request_hash columns to orders", async () => {
+    expect(await idempotencyColumns()).toEqual([
+      {
+        column_name: "idempotency_key",
+        data_type: "character varying",
+        character_maximum_length: 255,
+        is_nullable: "YES",
+      },
+      {
+        column_name: "request_hash",
+        data_type: "text",
+        character_maximum_length: null,
+        is_nullable: "YES",
+      },
+    ]);
+  });
+
+  it("makes idempotency_key unique per customer", async () => {
+    const insertOrder = (customerId: number, key: string | null) =>
+      client.query("INSERT INTO orders (customer_id, idempotency_key) VALUES ($1, $2)", [
+        customerId,
+        key,
+      ]);
+
+    // Allowed: several orders without a key, and the same key for different customers.
+    await insertOrder(1, null);
+    await insertOrder(1, null);
+    await insertOrder(1, "key-1");
+    await insertOrder(2, "key-1");
+
+    await expect(insertOrder(1, "key-1")).rejects.toThrow(`unique constraint "${constraintName}"`);
+  });
+
+  it("is reversible: down removes the columns and constraint, up re-adds them", async () => {
+    const constraintExists = async (): Promise<boolean> => {
+      const res = await client.query<{ exists: boolean }>(
+        "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = $1) AS exists",
+        [constraintName],
+      );
+      return res.rows[0].exists;
+    };
+
+    await migrateDown(client, migrationsDir);
+
+    expect(await idempotencyColumns()).toEqual([]);
+    expect(await constraintExists()).toBe(false);
+
+    await migrateUp(client, migrationsDir);
+
+    expect((await idempotencyColumns()).map((c) => c.column_name)).toEqual([
+      "idempotency_key",
+      "request_hash",
+    ]);
+    expect(await constraintExists()).toBe(true);
   });
 });
