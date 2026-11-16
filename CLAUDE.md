@@ -35,9 +35,15 @@ Use the existing project scripts:
 - `python3 -m venv .venv` - Create the project's Python virtual environment if it does not exist.
 - `.venv/bin/pytest` - Run Python tests using the project's virtual environment.
 
-Do not assume a command succeeded. Check its output.
+## 4. Python Virtual Environment
 
-## 4. Coding Style
+- Always activate the project's `.venv` before running Python-related commands.
+- Use `source .venv/bin/activate` to activate the virtual environment.
+- Always use the Python interpreter and dependencies from `.venv`.
+- Never rely on the system Python installation for project commands.
+- Never install Python dependencies globally.
+
+## 5. Coding Style
 
 - Write all code, comments, and documentation in English.
 - Use strict TypeScript and avoid the any type. Prefer explicit types and type safety.
@@ -47,13 +53,16 @@ Do not assume a command succeeded. Check its output.
 - Avoid duplicating code.
 - Before creating or modifying components, API endpoints, database logic, or tests, read and follow the relevant rules in `docs/standard.md`.
 
-## 5. Workflow & Verification
+## 6. Workflow & Verification
 - Keep changes focused and do not modify unrelated code.
 - Run `npm run lint`, `npm run typecheck`, and `npm run format:check` after making code changes.
 - Run relevant tests (`npm test`, `npm run test:legacy` and/or `.venv/bin/pytest`) after making code changes.
 - Verify that all relevant checks pass before considering a task complete.
+- Run verification commands one at a time rather than combining them.
+- Review each command's output before proceeding to the next command.
+- If a command fails, investigate and report the cause before continuing.
 
-## 6. Testing Requirements
+## 7. Testing Requirements
 
 Follow Test-Driven Development (TDD) when implementing new functionality or fixing bugs.
 
@@ -74,7 +83,7 @@ the test suite pass.
 - Do not change implementation code merely to satisfy a test if doing so violates the expected behavior or project standards.
 - Never claim that a test passed unless it was actually executed and passed.
 
-## 7. Security
+## 8. Security
 
 - Never use production data or real customer information.
 - Never expose secrets, API keys or credentials.
@@ -82,10 +91,8 @@ the test suite pass.
 - Do not commit secrets or local environment files.
 - Ask for approval before destructive operations,
   database resets or potentially irreversible changes.
-- Use a project-specific Python virtual environment (`venv`) for installing and managing Python dependencies.
-- Never install project dependencies globally on the system Python installation.
 
-## 8. Documentation and Traceability
+## 9. Documentation and Traceability
 
 - Create and maintain Architectural Decision Records (ADRs) in `docs/adr/` for significant architectural decisions.
 - Propose ADRs when significant architectural decisions arise. Explain the decision, considered alternatives and rationale.
