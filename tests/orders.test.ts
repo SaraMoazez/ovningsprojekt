@@ -196,4 +196,47 @@ describe("GET /orders/:id/price", () => {
     expect(res.status).toBe(200);
     expect(Number(res.body.total)).toBe(1187.5);
   });
+
+  // Characterization tests (step 5 of docs/plans/legacy-price-calc-modernization.md).
+  // The bodies were captured from the running API against the test database. They pin today's
+  // strings, which do not always have two decimals.
+  it.each([
+    { orderId: 1042, customerId: "1", body: { net: "950", vat: "237.5", total: "1187.5" } },
+    // SOMMAR20 (20 %).
+    { orderId: 1041, customerId: "2", body: { net: "588.8", vat: "147.2", total: "736.0" } },
+    // VAR10 (10 %). VAT 44.9775 is truncated to 44.97.
+    { orderId: 1044, customerId: "4", body: { net: "179.91", vat: "44.97", total: "224.88" } },
+  ])("returns the exact price body for order $orderId", async ({ orderId, customerId, body }) => {
+    const res = await request(app).get(`/orders/${orderId}/price`).set("X-Customer-Id", customerId);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(body);
+  });
+
+  it("returns 401 without X-Customer-Id", async () => {
+    const res = await request(app).get("/orders/1042/price");
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: { code: "unauthorized", message: "Logga in först." } });
+  });
+
+  it("returns 403 for another customer's order", async () => {
+    const res = await request(app).get("/orders/1042/price").set("X-Customer-Id", "2");
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({
+      error: { code: "forbidden", message: "Beställningen tillhör en annan kund." },
+    });
+  });
+
+  it("returns 404 for an order that does not exist", async () => {
+    const res = await request(app).get("/orders/9999/price").set("X-Customer-Id", "1");
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({
+      error: { code: "not_found", message: "Beställning 9999 finns inte." },
+    });
+  });
+
+  it("returns 400 for an id that is not a positive integer", async () => {
+    const res = await request(app).get("/orders/abc/price").set("X-Customer-Id", "1");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: { code: "invalid_input", message: "Ogiltigt id." } });
+  });
 });
