@@ -6,3 +6,6 @@ __pycache__/
 src/legacy/price_calc.log
 .claude/settings.local.json
 .venv/
+sessions/.compaction-backups/
+sessions/automatic/.test-results.json
+.claude/state/
