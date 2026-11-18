@@ -13,7 +13,11 @@ function parseId(raw: string): number | null {
 
 // Lägg en beställning.
 orders.post("/orders", requireCustomer, async (req, res) => {
-  const result = await createOrder((req as AuthedRequest).customerId, req.body ?? {});
+  const result = await createOrder(
+    (req as AuthedRequest).customerId,
+    req.header("Idempotency-Key"),
+    req.body ?? {},
+  );
   sendResult(res, result, 201);
 });
 

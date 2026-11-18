@@ -76,6 +76,15 @@ schema goes through migrations.
 Each step is sized for one `/tdd` run. Steps 1–3 build the migration foundation; steps 4–7 build
 the feature on top of it.
 
+> **Release constraint (added 2026-11-18): Steps 4 and 5 must be released together.**
+> They remain separate implementation steps, each with its own `/tdd` run, review and commit, but
+> no build that contains Step 4 without Step 5 may be deployed or released. In the Step 4 state, a
+> retry with an already-used `Idempotency-Key` raises an unhandled unique violation, and the API
+> process exits (verified, see the note under Step 5). Step 5's `ON CONFLICT DO NOTHING` removes
+> this trigger. The general risk that any unexpected error in an async route can end the process
+> is tracked separately in `docs/tech-debt/0001-express-async-error-handling.md` and is not part
+> of this plan.
+
 ### Step 0 – ADRs (documentation only, no TDD)
 
 - **Objective:** Record the two architectural decisions before code is written.
@@ -137,6 +146,7 @@ the feature on top of it.
     Order of checks: key → lines (auth already ran in `requireCustomer`). The raw key (not trimmed)
     is stored in the existing `INSERT INTO orders`.
 - **Verify:** New and updated tests in `tests/orders.test.ts` pass; full suite green.
+- **Release:** must not be released without Step 5 (see *Release constraint* above).
 
 ### Step 5 – Replay: same key returns the existing order
 
@@ -154,7 +164,25 @@ the feature on top of it.
   - The existing `ROLLBACK`/rethrow path stays for unexpected errors.
 - **Verify:** Replay, per-customer and deterministic concurrency tests pass; full suite green.
   The concurrency test is written in this step (not later) because the step 4 code
-  (plain `INSERT` + unique constraint) makes it fail with a 500, which gives it a real red phase.
+  (plain `INSERT` + unique constraint) makes it fail, which gives it a real red phase.
+- **Verified step 4 behaviour for a duplicate key (2026-11-18, throwaway probes against the test
+  DB, not part of the suite):** the second `INSERT` raises `23505` (`duplicate key value violates
+  unique constraint "orders_customer_idempotency_key_unique"`). `createOrder` rolls back and
+  rethrows, and the async route handler has no error handling (Express 4.22.3, no error
+  middleware in `src/app.ts`), so the rejection is unhandled and **no response is sent; it is not
+  a 500**.
+  - Under Jest: the test fails with the `23505` error attributed to it, then with
+    `Exceeded timeout of 5000 ms`, and Jest does not exit afterwards ("Jest did not exit one second
+    after the test run has completed") because the unanswered request keeps a socket open.
+  - In a real server process (Node v24.19.0, default `--unhandled-rejections=throw`): the process
+    **exits with code 1**. Until step 5 is in place, any client that retries with the same key
+    crashes the API.
+  - Consequences for this step: the red phase is "unique-violation error + test timeout", not
+    "500". Give the replay and concurrency tests an explicit Jest timeout, and run the red phase
+    with `npx jest --runInBand --forceExit tests/orders.test.ts` (a CLI flag for that run only, no
+    config change) so the hung request does not keep Jest alive.
+  - Steps 4 and 5 **must** be released together (see *Release constraint* under *Implementation
+    Steps*).
 
 ### Step 6 – Conflict: same key, different body
 
@@ -242,14 +270,17 @@ because `schema.sql` does not drop the fixture tables.
 ### Step 5 – replay
 
 - Same customer, key and body twice → both 201, same `id`, and `orders` / `order_lines` row counts
-  only grew once (AC2). Expected first failure: second request gets 500 from the unique
-  constraint violation added in step 3/4.
+  only grew once (AC2). Expected first failure: the second request's `INSERT` raises the unique
+  violation (`23505`, constraint from step 3) as an unhandled rejection; no response is sent, so
+  the test fails with that error and then a Jest timeout (verified, see step 5).
 - Same body including the same `discountCode` → replay (201, same `id`).
 - Customer A and customer B use the same key → two different order ids, each with its own
   `customerId`; B never receives A's order (AC5).
 - **Deterministic concurrent retry (AC6)**, test A in *Concurrency testing approach* below.
-  Expected first failure: the second request gets 500 (unique violation), because step 4 uses a
-  plain `INSERT`.
+  Expected first failure: once released, request 2's plain `INSERT` raises the unique violation
+  (`23505`) as an unhandled rejection and gets no response, so the test fails with that error and
+  a Jest timeout, not a 500. (The sequential case was verified; this concurrent case follows the
+  same code path but was not run.)
 
 ### Step 6 – conflict
 
@@ -310,8 +341,8 @@ timeout. Polling only waits for a condition to become true; the outcome does not
 
 | Wrong implementation | Result |
 |---|---|
-| No `ON CONFLICT` (step 4 state) | Request 2 waits, then gets a unique violation → 500. |
-| SELECT-then-INSERT | SELECT sees nothing (row uncommitted), the INSERT waits, then a unique violation → 500. |
+| No `ON CONFLICT` (step 4 state) | Request 2 waits, then gets a unique violation, which is unhandled → no response; the test fails with the `23505` error and a timeout. |
+| SELECT-then-INSERT | SELECT sees nothing (row uncommitted), the INSERT waits, then a unique violation → same as above (no response, error + timeout). |
 | No unique constraint | Request 2 never blocks → step 5 times out with a clear message. |
 
 **Limitations**
@@ -328,6 +359,8 @@ timeout. Polling only waits for a condition to become true; the outcome does not
 - **Hangs on failure.** A broken implementation can make a request wait until the helper's
   timeout (e.g. 5 s). The tests set an explicit Jest timeout (e.g. 15 s), and the test connection
   is always rolled back and released in `finally`, so the next test's `resetDb` is not blocked.
+  A request that never gets a response (an unhandled rejection in the route, verified for the step
+  4 state) also keeps Jest from exiting, so red-phase runs use `--forceExit` on the command line.
 - **Supertest is lazy.** A request starts only when `.then()` is called, so each request is started
   explicitly (e.g. `const p1 = request(app).post(...).then((r) => r)`) before waiting for it to
   block.
@@ -372,6 +405,9 @@ Run `npm test`, `npm run lint`, `npm run typecheck`, `npm run format:check`. In 
 
 **Regressions / compatibility**
 - **Breaking API change:** clients without the header get 400. Documented in `docs/api.md`.
+- **Steps 4 and 5 must be released together.** Step 4 alone lets a duplicate key crash the API
+  process (verified 2026-11-18). The general async-error risk is out of scope here and tracked in
+  `docs/tech-debt/0001-express-async-error-handling.md`.
 - Seeded orders keep `NULL` keys; legacy Python reads explicit columns
   (`price_calc.py:30`, `nightly_report.py:8`), so new columns do not affect it.
 - `README.md`'s "16 gröna tester" will become outdated; updated in step 8.

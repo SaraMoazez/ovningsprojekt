@@ -29,10 +29,25 @@ function validateLines(lines: unknown): Result<OrderLineInput[]> {
   return ok(lines as OrderLineInput[]);
 }
 
+const MAX_IDEMPOTENCY_KEY_LENGTH = 255;
+
+function validateIdempotencyKey(key: string | undefined): Result<string> {
+  if (key === undefined || key.trim() === "" || key.length > MAX_IDEMPOTENCY_KEY_LENGTH) {
+    return err(
+      "invalid_input",
+      `The Idempotency-Key header is required and must be 1-${MAX_IDEMPOTENCY_KEY_LENGTH} characters.`,
+    );
+  }
+  return ok(key);
+}
+
 export async function createOrder(
   customerId: number,
+  idempotencyKey: string | undefined,
   input: { lines?: unknown; discountCode?: unknown },
 ): Promise<Result<Order>> {
+  const key = validateIdempotencyKey(idempotencyKey);
+  if (!key.ok) return key;
   const lines = validateLines(input.lines);
   if (!lines.ok) return lines;
   const discountCode = typeof input.discountCode === "string" ? input.discountCode : null;
@@ -41,8 +56,8 @@ export async function createOrder(
   try {
     await client.query("BEGIN");
     const order = await client.query(
-      "INSERT INTO orders (customer_id, discount_code) VALUES ($1, $2) RETURNING id",
-      [customerId, discountCode],
+      "INSERT INTO orders (customer_id, discount_code, idempotency_key) VALUES ($1, $2, $3) RETURNING id",
+      [customerId, discountCode, key.value],
     );
     const orderId: number = order.rows[0].id;
     for (const line of lines.value) {
