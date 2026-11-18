@@ -88,6 +88,11 @@
                         "type": "command",
                         "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/typecheck-on-stop.mjs\"",
                         "timeout": 60
+                    },
+                    {
+                        "type": "command",
+                        "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-tests.mjs\"",
+                        "timeout": 30
                     }
                 ]
             }

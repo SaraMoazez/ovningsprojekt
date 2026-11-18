@@ -10,11 +10,16 @@ export function projectDirFrom(event) {
   return process.env.CLAUDE_PROJECT_DIR || event.cwd || process.cwd();
 }
 
+// Per-session state of a hook, in the gitignored .claude/state/ folder.
+export function sessionStatePath(projectDir, kind, sessionId) {
+  const safeId = String(sessionId ?? "unknown").replace(/[^A-Za-z0-9_-]/g, "_");
+  return path.join(projectDir, ".claude", "state", kind, safeId);
+}
+
 // Marks that a TypeScript file was changed in this session, so that the Stop hook runs the
 // type check once at the end of the turn instead of after every edit.
 export function pendingTypecheckPath(projectDir, sessionId) {
-  const safeId = String(sessionId ?? "unknown").replace(/[^A-Za-z0-9_-]/g, "_");
-  return path.join(projectDir, ".claude", "state", "typecheck-pending", safeId);
+  return sessionStatePath(projectDir, "typecheck-pending", sessionId);
 }
 
 export function truncate(text) {
