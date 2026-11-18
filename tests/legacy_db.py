@@ -94,3 +94,21 @@ def run_sql(sql, params=()):
     with psycopg.connect(guarded_test_database_url(), autocommit=True) as conn:
         cur = conn.execute(sql, params)
         return cur.fetchall() if cur.description else []
+
+
+def create_order(order_id, lines, discount_code=None, status="new", created_at=None):
+    """Insert a fixture order and then its (quantity, unit_price) lines into the test database.
+
+    status and created_at default to the schema defaults ('new' and now()).
+    """
+    run_sql(
+        "INSERT INTO orders (id, customer_id, discount_code, status, created_at)"
+        " VALUES (%s, %s, %s, %s, COALESCE(%s::timestamptz, now()))",
+        (order_id, 1, discount_code, status, created_at),
+    )
+    for quantity, unit_price in lines:
+        run_sql(
+            "INSERT INTO order_lines (order_id, product, quantity, unit_price)"
+            " VALUES (%s, %s, %s, %s)",
+            (order_id, "Fixture", quantity, unit_price),
+        )

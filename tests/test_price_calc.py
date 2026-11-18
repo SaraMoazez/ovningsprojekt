@@ -13,7 +13,7 @@ import datetime
 
 import pytest
 
-from legacy_db import REPO_ROOT, run_script, run_sql
+from legacy_db import REPO_ROOT, create_order, run_script, run_sql
 
 PRICE_CALC = REPO_ROOT / "src" / "legacy" / "price_calc.py"
 PRICE_LOG = REPO_ROOT / "src" / "legacy" / "price_calc.log"
@@ -69,20 +69,6 @@ def create_discount(code, percent, valid_from=None, valid_to=None):
         "INSERT INTO discounts (code, percent, valid_from, valid_to) VALUES (%s, %s, %s, %s)",
         (code, percent, valid_from, valid_to),
     )
-
-
-def create_order(order_id, lines, discount_code=None):
-    """Insert an order and then its (quantity, unit_price) lines."""
-    run_sql(
-        "INSERT INTO orders (id, customer_id, discount_code) VALUES (%s, %s, %s)",
-        (order_id, 1, discount_code),
-    )
-    for quantity, unit_price in lines:
-        run_sql(
-            "INSERT INTO order_lines (order_id, product, quantity, unit_price)"
-            " VALUES (%s, %s, %s, %s)",
-            (order_id, "Fixture", quantity, unit_price),
-        )
 
 
 def test_an_unknown_discount_code_is_ignored():
