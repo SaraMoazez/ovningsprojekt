@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AuthedRequest, requireCustomer } from "../auth";
 import { sendResult } from "../http";
+import { ok } from "../result";
 import { createCustomer, getCustomer, listOrdersForCustomer } from "../services/customerService";
 
 export const customers = Router();
@@ -20,5 +21,5 @@ customers.get("/customers/me", requireCustomer, async (req, res) => {
 // Den inloggade kundens beställningar.
 customers.get("/customers/me/orders", requireCustomer, async (req, res) => {
   const orders = await listOrdersForCustomer((req as AuthedRequest).customerId);
-  res.json(orders);
+  sendResult(res, ok(orders));
 });
